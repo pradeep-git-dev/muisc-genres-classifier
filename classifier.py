@@ -3,19 +3,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
-# =====================================================
-# 1. READ CSV
-# =====================================================
-csv_path = "music_genre_data.csv"   # adjust if needed
-df = pd.read_csv(csv_path, na_values=['?']) # Treat '?' as a missing value
+# read csv file
+csv_path = "music_genre_data.csv"
+df = pd.read_csv(csv_path, na_values=["?"])
 
 print("Columns:", df.columns.tolist())
 print("Total rows:", len(df))
 
-# =====================================================
-# 2. SELECT FEATURES AND TARGET
-# =====================================================
-# From the header snippet, useful numeric features:
+# select features and target
 feature_cols = [
     "acousticness",
     "danceability",
@@ -32,7 +27,7 @@ feature_cols = [
 
 target_col = "music_genre"
 
-# Keep only rows with no missing values in these columns
+# remove rows with missing values
 df_model = df[feature_cols + [target_col]].dropna()
 
 X = df_model[feature_cols]
@@ -41,25 +36,20 @@ y = df_model[target_col]
 print("Usable rows after dropping NAs:", len(df_model))
 print("Example class counts:")
 print(y.value_counts().head(20))
-print()
 
-# =====================================================
-# 3. TRAIN / TEST SPLIT
-# =====================================================
+# split data into train and test
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y,
+    X,
+    y,
     test_size=0.25,
     random_state=42,
-    stratify=y  # keep class balance
+    stratify=y
 )
 
 print("Train size:", X_train.shape[0])
 print("Test size:", X_test.shape[0])
-print()
 
-# =====================================================
-# 4. TRAIN MODEL
-# =====================================================
+# train random forest model
 model = RandomForestClassifier(
     n_estimators=200,
     max_depth=None,
@@ -69,60 +59,59 @@ model = RandomForestClassifier(
 
 model.fit(X_train, y_train)
 
-# =====================================================
-# 5. EVALUATE
-# =====================================================
+# evaluate model
 y_pred = model.predict(X_test)
 acc = accuracy_score(y_test, y_pred) * 100
+
 print("Accuracy on test set: {:.2f}%".format(acc))
-print()
-
-print("Classification Report (first few classes):")
+print("Classification Report:")
 print(classification_report(y_test, y_pred, zero_division=0))
-print()
 
-print("=== SAMPLE TEST ROWS WITH PREDICTIONS ===")
+# show sample predictions
+print("Sample test rows with predictions:")
 sample_n = 5
+
 for i in range(sample_n):
     row_features = X_test.iloc[i]
     true_label = y_test.iloc[i]
     pred_label = y_pred[i]
+
     print("Features:", row_features.to_dict())
-    print("TRUE GENRE:", true_label)
-    print("PREDICTED GENRE:", pred_label)
-    print("-" * 60)
+    print("True Genre:", true_label)
+    print("Predicted Genre:", pred_label)
+    print("-" * 50)
 
-# =====================================================
-# 6. INTERACTIVE INPUT LOOP
-# =====================================================
-print("\nNow you can enter feature values to predict genre.")
-print("Press Enter with no value to use the column mean for that feature.\n")
+# interactive prediction
+print("\nEnter feature values to predict genre")
+print("Press Enter to use default mean value")
 
-# Precompute means to use as defaults
 col_means = X.mean()
 
 def ask_float(prompt, default):
-    s = input(f"{prompt} [{default:.4f}]: ").strip()
-    if s == "":
+    value = input(f"{prompt} [{default:.4f}]: ").strip()
+
+    if value == "":
         return float(default)
+
     try:
-        return float(s)
+        return float(value)
     except ValueError:
-        print("Invalid number, using default.")
+        print("Invalid number, using default")
         return float(default)
 
 while True:
-    cont = input("\nType 'exit' to stop, or press Enter to predict: ").strip().lower()
-    if cont == "exit":
-        print("Exiting. Thank you!")
+    user_input = input("\nPress Enter to predict or type 'exit' to stop: ").strip().lower()
+
+    if user_input == "exit":
+        print("Exiting")
         break
 
     user_values = {}
-    for col in feature_cols:
-        val = ask_float(f"Enter {col}", col_means[col])
-        user_values[col] = val
 
-    user_df = pd.DataFrame([user_values])  # 1-row DataFrame
-    pred_genre = model.predict(user_df)[0]
-    print("Predicted Genre:", pred_genre)
-0.40
+    for col in feature_cols:
+        user_values[col] = ask_float(f"Enter {col}", col_means[col])
+
+    user_df = pd.DataFrame([user_values])
+    prediction = model.predict(user_df)[0]
+
+    print("Predicted Genre:", prediction)
